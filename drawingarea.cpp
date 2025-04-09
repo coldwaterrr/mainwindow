@@ -12,6 +12,7 @@ DrawingArea::DrawingArea(QWidget* parent) : QWidget(parent)
     setStyleSheet("background-color: white;");
 
     setAcceptDrops(true);
+    setMouseTracking(true);
 }
 
 DrawingArea::~DrawingArea() 
@@ -185,7 +186,7 @@ void DrawingArea::mouseMoveEvent(QMouseEvent* event)
 
     if (selectedShape) {
         for (const QPoint& handle : selectedShape->resizeHandles()) {
-            QRect handleRect(handle.x() - 4, handle.y() - 4, 8, 8);
+            QRect handleRect(handle.x() - 3, handle.y() - 3, 6, 6);
             if (handleRect.contains(event->pos())) {
                 overHandle = true;
 
@@ -212,18 +213,72 @@ void DrawingArea::mouseMoveEvent(QMouseEvent* event)
     if (resizing && selectedShape) {
         QRect rect = selectedShape->boundingRect();
         QPoint center = rect.center();
-        QSize newSize = QSize(abs(event->pos().x() - center.x()) * 2,
-            abs(event->pos().y() - center.y()) * 2);
+
+        // 当前拖动位置
+        QPoint pos = event->pos();
+
+        // 获取当前 handle
+        const QList<QPoint>& handles = selectedShape->resizeHandles();
+        QPoint handle = handles[resizingHandleIndex];
+
+        QSize newSize;
+
+        // 判断是否为角上的控制点（索引为 0~3）
+        if (resizingHandleIndex >= 0 && resizingHandleIndex <= 3) {
+            // 角点：对称拉伸，保持中心点不变
+            newSize = QSize(
+                abs(pos.x() - center.x()) * 2,
+                abs(pos.y() - center.y()) * 2
+            );
+        }
+        else {
+            // 边中点：只拉伸一个轴，另一个轴保持不变
+            int currentWidth = rect.width();
+            int currentHeight = rect.height();
+
+            switch (resizingHandleIndex) {
+            case 4: // topMid
+            case 5: // bottomMid
+                // 纵向拉伸，高度变化，宽度不变
+                newSize = QSize(currentWidth, abs(pos.y() - center.y()) * 2);
+                break;
+            case 6: // leftMid
+            case 7: // rightMid
+                // 横向拉伸，宽度变化，高度不变
+                newSize = QSize(abs(pos.x() - center.x()) * 2, currentHeight);
+                break;
+            }
+        }
+
         selectedShape->setSize(newSize.width(), newSize.height());
         update();
         return;
     }
 }
 
+
+bool DrawingArea::isCursorOverHandle(const QPoint& pos) 
+{
+    if (selectedShape) 
+    {
+        for (const QPoint& handle : selectedShape->resizeHandles()) 
+        {
+            QRect handleRect(handle.x() - 3, handle.y() - 3, 6, 6);
+            if (handleRect.contains(pos)) 
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void DrawingArea::mouseReleaseEvent(QMouseEvent* event) 
 {
     Q_UNUSED(event);
     dragging = false;
+    resizing = false; // ✅ 释放拉伸状态
+    setCursor(isCursorOverHandle(event->pos()) ? Qt::SizeFDiagCursor : Qt::ArrowCursor);
 }
 
 void DrawingArea::keyPressEvent(QKeyEvent* event) 

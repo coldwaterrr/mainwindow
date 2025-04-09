@@ -29,12 +29,25 @@ QRect Shape::boundingRect() const
 QList<QPoint> Shape::resizeHandles() const 
 {
     QRect r = boundingRect();
-    return 
-    {
-        r.topLeft(),
-        r.topRight(),
-        r.bottomLeft(),
-        r.bottomRight()
+    QPoint topLeft = r.topLeft();
+    QPoint topRight = r.topRight();
+    QPoint bottomLeft = r.bottomLeft();
+    QPoint bottomRight = r.bottomRight();
+
+    QPoint topMid((topLeft.x() + topRight.x()) / 2, topLeft.y());
+    QPoint bottomMid((bottomLeft.x() + bottomRight.x()) / 2, bottomLeft.y());
+    QPoint leftMid(topLeft.x(), (topLeft.y() + bottomLeft.y()) / 2);
+    QPoint rightMid(topRight.x(), (topRight.y() + bottomRight.y()) / 2);
+
+    return {
+        topLeft,
+        topRight,
+        bottomLeft,
+        bottomRight,
+        topMid,
+        bottomMid,
+        leftMid,
+        rightMid
     };
 }
 

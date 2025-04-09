@@ -13,6 +13,7 @@ public:
 
     // 获取选中的形状
     Shape* getSelectedShape() const;
+    bool isCursorOverHandle(const QPoint& pos);
     void moveUp(Shape* shape);
     void moveDown(Shape* shape);
     void moveToTop(Shape* shape);
