@@ -119,21 +119,21 @@ void DrawingArea::mousePressEvent(QMouseEvent* event)
                 // 创建右键菜单
                 QMenu contextMenu(this);
 
-                QAction* copy = contextMenu.addAction("复制    Ctrl+C");
-                QAction* cut = contextMenu.addAction("剪切    Ctrl+X");
+                QAction* copy  = contextMenu.addAction("复制    Ctrl+C");
+                QAction* cut   = contextMenu.addAction("剪切    Ctrl+X");
                 QAction* paste = contextMenu.addAction("粘贴    Ctrl+V");
                 QAction* reuse = contextMenu.addAction("复用    Ctrl+D");
                 QAction* deleteAction = contextMenu.addAction("删除  Delete/Backspace");
 
                 // 添加图形层级操作
-                QAction* moveUpAction = contextMenu.addAction("上移");
-                QAction* moveDownAction = contextMenu.addAction("下移");
-                QAction* moveToTopAction = contextMenu.addAction("置顶");
+                QAction* moveUpAction       = contextMenu.addAction("上移");
+                QAction* moveDownAction     = contextMenu.addAction("下移");
+                QAction* moveToTopAction    = contextMenu.addAction("置顶");
                 QAction* moveToBottomAction = contextMenu.addAction("置底");
 
-                connect(moveUpAction, &QAction::triggered, this, [=]() { moveUp(selectedShape); });
-                connect(moveDownAction, &QAction::triggered, this, [=]() { moveDown(selectedShape); });
-                connect(moveToTopAction, &QAction::triggered, this, [=]() { moveToTop(selectedShape); });
+                connect(moveUpAction,       &QAction::triggered, this, [=]() { moveUp(selectedShape); });
+                connect(moveDownAction,     &QAction::triggered, this, [=]() { moveDown(selectedShape); });
+                connect(moveToTopAction,    &QAction::triggered, this, [=]() { moveToTop(selectedShape); });
                 connect(moveToBottomAction, &QAction::triggered, this, [=]() { moveToBottom(selectedShape); });
 
 
@@ -183,24 +183,62 @@ void DrawingArea::mouseMoveEvent(QMouseEvent* event)
 {
     // 是否悬停在某个控制点上
     bool overHandle = false;
+    bool overButton = false;
 
-    if (selectedShape) {
-        for (const QPoint& handle : selectedShape->resizeHandles()) {
+    if (selectedShape) 
+    {
+        int i = 0;
+        int circleOffset = 15; // 与控制点的间距（单位：像素）
+        int handleSize = 6;
+        int buttonSize = 10;
+
+        // 对应 resizeHandles() 中的顺序：0~3 是四角，4~7 是四边中点
+        // 四个方向的偏移（向外偏移一段距离）
+        QVector<QPoint> offsets = 
+        {
+            QPoint(0, -circleOffset),  // 上中：向上偏
+            QPoint(0, circleOffset),   // 下中：向下偏
+            QPoint(-circleOffset, 0),  // 左中：向左偏
+            QPoint(circleOffset, 0)    // 右中：向右偏
+        };
+        QList<QPoint> handles = selectedShape->resizeHandles();
+        for (const QPoint& handle : handles) {
             QRect handleRect(handle.x() - 3, handle.y() - 3, 6, 6);
-            if (handleRect.contains(event->pos())) {
-                overHandle = true;
-
-                // 可以根据方向设不同的光标类型：
-                setCursor(Qt::SizeFDiagCursor);  // 统一使用一个缩放光标
-                break;
+            if (i < 4) {
+                // 四角控制点
+                if (handleRect.contains(event->pos())) {
+                    overHandle = true;
+                    setCursor(Qt::SizeFDiagCursor);
+                    break;
+                }
             }
+            else {
+                // 中点控制点
+                if (handleRect.contains(event->pos())) {
+                    overHandle = true;
+                    setCursor(Qt::SizeFDiagCursor); // 也可以使用不同方向的缩放光标
+                    break;
+                }
+
+                // 检查是否悬停在中点控制点对应的圆形按钮上
+                QPoint circleCenter = handle + offsets[i - 4];
+                QRect circleRect(circleCenter.x() - buttonSize / 2, circleCenter.y() - buttonSize / 2, buttonSize, buttonSize);
+
+                if (circleRect.contains(event->pos())) {
+                    overButton = true;
+                    setCursor(Qt::CrossCursor);  // 你可以改成其他光标，比如 Qt::PointingHandCursor
+                    break;
+                }
+            }
+            ++i;
         }
     }
 
-    if (!overHandle && !dragging && !resizing) {
-        setCursor(Qt::ArrowCursor);  // 恢复默认光标
+    if (!overHandle && !overButton && !dragging && !resizing) {
+        setCursor(Qt::ArrowCursor);  // 恢复默认
     }
 
+    
     // 处理拖动
     if (dragging && selectedShape) {
         QPoint newPos = event->pos() - dragOffset;

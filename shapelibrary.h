@@ -9,4 +9,7 @@ public:
     ~ShapeLibrary() {}
 
     void startDrag(const QString& shapeType);
+    //void enterEvent(QEvent* event) override;
+    //void leaveEvent(QEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 };
